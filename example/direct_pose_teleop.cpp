@@ -15,6 +15,7 @@
 
 #include <iostream>
 #include <thread>
+#include <array>
 
 namespace {
 /** Operation modes for local and remote arm */
@@ -190,8 +191,10 @@ int main(int argc, char* argv[])
                 }
                 log.info("Fault on robot server is cleared");
             }
+        }
 
-            // Enable all robot servers
+        // Enable all robots
+        for (size_t i = 0; i < robots.size(); i++) {
             robots[i]->enable();
             log.info("[" + serverIPs[i] + "] Enabling robot ...");
         }
@@ -322,7 +325,7 @@ int main(int argc, char* argv[])
         // Wait for start signal
         //=============================================================================
         // Wait for the operator to take handle on the local arm
-        log.info("Ready to teleoperate");
+        log.info("Ready to teleoperate, apply force on local arm to begin");
         Eigen::Vector3d tcpForce = Eigen::Vector3d::Zero();
         do {
             robots[0]->getRobotStates(robotStates[0]);
