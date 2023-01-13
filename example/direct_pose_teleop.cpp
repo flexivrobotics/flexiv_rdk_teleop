@@ -30,6 +30,9 @@ constexpr double k_defaultGripperVel = 0.5;
 /** Fail-safe counter limit */
 constexpr size_t k_failSafeLimit = 10;
 
+/** TCP force threshold to trigger the start of teleoperation [N] */
+constexpr double k_tcpForceThreshold = 10.0;
+
 }
 
 /** Callback function for realtime periodic task */
@@ -316,8 +319,20 @@ int main(int argc, char* argv[])
             }
         }
 
-        // Set new operation modes for all arms after they've reached ready pose
+        // Wait for start signal
         //=============================================================================
+        // Wait for the operator to take handle on the local arm
+        log.info("Ready to teleoperate");
+        Eigen::Vector3d tcpForce = Eigen::Vector3d::Zero();
+        do {
+            robots[0]->getRobotStates(robotStates[0]);
+            tcpForce = {robotStates[0].extWrenchInBase[0],
+                robotStates[0].extWrenchInBase[1],
+                robotStates[0].extWrenchInBase[2]};
+            std::this_thread::sleep_for(std::chrono::milliseconds(1));
+        } while (tcpForce.norm() < k_tcpForceThreshold);
+
+        // Set new operation modes for all arms after they've reached ready pose
         for (size_t i = 0; i < robots.size(); i++) {
             robots[i]->setMode(robotModes[i]);
 
