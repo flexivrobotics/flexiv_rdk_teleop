@@ -15,6 +15,7 @@ endif()
 # Minumum example list for all OS
 set(EXAMPLE_LIST
   direct_pose_teleop
+  model_velocity_teleop
 )
 
 # Find flexiv_rdk_teleop INTERFACE library

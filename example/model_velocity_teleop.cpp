@@ -1,7 +1,7 @@
 /**
- * @example direct_pose_teleop.cpp
- * Robot teleoperation using direct pose mirroring with force feedback and
- * additional algorithms.
+ * @example model_velocity_teleop.cpp
+ * Robot teleoperation using model-based velocity mirroring with force feedback
+ * and additional algorithms.
  * @copyright Copyright (C) 2016-2021 Flexiv Ltd. All Rights Reserved.
  * @author Flexiv
  */
@@ -19,7 +19,7 @@
 namespace {
 /** Operation modes for local and remote arm */
 constexpr std::array<flexiv::Mode, 2> robotModes
-    = {flexiv::MODE_TELEOP_LOCAL, flexiv::MODE_CARTESIAN_IMPEDANCE};
+    = {flexiv::MODE_TELEOP_LOCAL, flexiv::MODE_TELEOP_REMOTE};
 
 /** Initial gripper width [m] */
 constexpr double k_initGripperWidth = 0.05;
@@ -79,15 +79,20 @@ void teleopPeriodicTask(
         }
 
         // Send TCP pose of local arm to remote arm
-        robots[1]->streamTcpPose(robotStates[0].tcpPose);
+        std::vector<double> localToRemoteM1 = robotStates[0].teleopAlgData.M1;
+        double localToRemoteP1 = robotStates[0].teleopAlgData.P1;
+        std::vector<double> localToRemoteP2 = robotStates[0].teleopAlgData.P2;
 
-        // Send TCP wrench and other anonymous algorithm data of remote arm to
-        // local arm
+        robots[1]->commandToRemote(
+            localToRemoteM1, localToRemoteP1, localToRemoteP2);
+
+        // Send TCP wrench of remote arm to local arm
         std::vector<double> remoteToLocalWrench
             = robotStates[1].extWrenchInBase;
         double remoteToLocalP1 = robotStates[1].teleopAlgData.P1;
         std::vector<double> remoteToLocalP2 = robotStates[1].teleopAlgData.P2;
         std::vector<double> remoteToLocalP3 = robotStates[1].teleopAlgData.P3;
+
         robots[0]->commandToLocal(remoteToLocalWrench, remoteToLocalP1,
             remoteToLocalP2, remoteToLocalP3);
 
@@ -326,10 +331,6 @@ int main(int argc, char* argv[])
                 std::this_thread::sleep_for(std::chrono::milliseconds(1));
             } while (robots[i]->getMode() != robotModes[i]);
         }
-
-        // Set remote arm's Cartesian stiffness
-        std::vector<double> stiffness = {1000, 1000, 1000, 100, 100, 100};
-        robots[1]->setCartesianStiffness(stiffness);
 
         // Periodic Tasks
         //=============================================================================
